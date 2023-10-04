@@ -25,7 +25,7 @@ class Security:
     Coupon: float
     Maturity: date
     Dirty: float
-    AnnualReturnPct: float
+    GrossAER: float
 
 
 if len(sys.argv) != 3:
@@ -100,14 +100,15 @@ with open(sys.argv[1], 'r') as f:
                       Coupon=coupon,
                       Maturity=maturity_date,
                       Dirty=dirty,
-                      AnnualReturnPct=annual_equiv*100))
+                      GrossAER=annual_equiv))
 
-assets.sort(key=lambda x: x.AnnualReturnPct, reverse=True)
+assets.sort(key=lambda x: x.GrossAER, reverse=True)
 
 print("IMPORTANT: This script is not tax advice nor financial advice.  It probably contains errors.")
 print("Do your own evaluation of how taxation works for your specific circumstances before buying any securities.")
 print("Do not rely on this script to be kept up to date as taxation laws change.")
 print()
-print(f"{'ISIN':^12} | {'Type':^12} | {'Coupon':>7} | {'Maturity':^10} | {'Price':^7} | {'Net Int':^7}")
+print(f"| {'':12} | {'':12} | {'':7} | {'':10} | {'':^7} | {'Comparison AER':^17} |")
+print(f"| {'ISIN':^12} | {'Type':^12} | {'Coupon':>7} | {'Maturity':^10} | {'Price':^7} | {'Net':^7} | {'Gross':^7} |")
 for asset in assets:
-    print(f'{asset.ISIN:12} | {asset.Type.value:^12} | {asset.Coupon:6.3f}% | {asset.Maturity} | {asset.Dirty:7.3f} | {asset.AnnualReturnPct:6.3f}%')
+    print(f'| {asset.ISIN:12} | {asset.Type.value:^12} | {asset.Coupon:6.3f}% | {asset.Maturity} | {asset.Dirty:7.3f} | {asset.GrossAER:7.3%} | {asset.GrossAER/(1-(tax_rate/100)) if asset.GrossAER >= 0 else asset.GrossAER:7.3%} |')
