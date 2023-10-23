@@ -49,10 +49,10 @@ with open(sys.argv[1], 'r') as f:
     for row in csv_reader:
         # Parse out all relevant data from the record.
         gilt_name = row[0]
-        export_date = datetime.strptime(row[1], "%d/%m/%Y").date()
+        export_date = datetime.strptime(row[1], "%m/%d/%Y").date()
         type = SecurityToType[row[3]]
         coupon = float(row[4]) if row[4] != "N/A" else 0
-        maturity_date = datetime.strptime(row[5], "%d/%m/%Y").date()
+        maturity_date = datetime.strptime(row[5], "%m/%d/%Y").date()
         days_to_maturity = (maturity_date - export_date).days
         clean = float(row[6]) if row[6] != "N/A" else 100
         dirty = float(row[7]) if row[7] != "N/A" else clean
