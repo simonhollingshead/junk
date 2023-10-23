@@ -39,20 +39,54 @@ tax_rate = float(sys.argv[2])
 if (tax_rate <= 1 and tax_rate != 0) or tax_rate > 100:
     # <=1 probably means someone entered 0.4 for 40%.
     # However, indicating 0% tax is acceptable.
-    print(f"Parameter two should be your prevailing tax rate.  You set {tax_rate}% which seemed illogical.")
+    print(
+        f"Parameter two should be your prevailing tax rate.  You set {tax_rate}% which seemed illogical.")
     sys.exit(1)
 
 assets = []
 with open(sys.argv[1], 'r') as f:
+    print("IMPORTANT: This script is not tax advice nor financial advice.  It probably contains errors.")
+    print("Do your own evaluation of how taxation works for your specific circumstances before buying any securities.")
+    print("Do not rely on this script to be kept up to date as taxation laws change.")
+    print()
+
+    # For some very weird reason, while I export the file and get DD/MM/YYYY, I've had a report that someone else gets MM/DD/YYYY.
+    # I need to scan through the maturity dates to identify which of the two this file is in.
+    # Since bill expiry dates seem to be every 7 days, I should pretty quickly run across an unambiguous date (X/Y/Z where X or Y > 13).
+    # Yes, this is a hack, but it's *effective*.
+    print("Identifying whether file is DD/MM/YYYY or MM/DD/YYYY... ", end='')
     csv_reader = csv.reader(f)
+    next(csv_reader)  # Remove the headers.
+    date_format = None
+    for row in csv_reader:
+        try:
+            datetime.strptime(row[5], r"%d/%m/%Y")
+        except ValueError:
+            print("Found MM/DD/YYYY.")
+            date_format = r"%m/%d/%Y"
+        if not date_format:
+            try:
+                datetime.strptime(row[5], r"%m/%d/%Y")
+            except ValueError:
+                print("Found DD/MM/YYYY.")
+                date_format = r"%d/%m/%Y"
+        if date_format:
+            break
+    if not date_format:
+        # At least one of the dates should have been unambiguous (e.g. the bill that matures on 2073-03-22).
+        print("Somehow it wasn't possible to tell what the date format was.  This should never happen!  Are you sure you've done a full export?")
+        exit(1)
+
+    # Rewind back to the start now we know what the date format is.
+    f.seek(0)
     next(csv_reader)  # Remove the headers.
     for row in csv_reader:
         # Parse out all relevant data from the record.
         gilt_name = row[0]
-        export_date = datetime.strptime(row[1], "%d/%m/%Y").date()
+        export_date = datetime.strptime(row[1], date_format).date()
         type = SecurityToType[row[3]]
         coupon = float(row[4]) if row[4] != "N/A" else 0
-        maturity_date = datetime.strptime(row[5], "%d/%m/%Y").date()
+        maturity_date = datetime.strptime(row[5], date_format).date()
         days_to_maturity = (maturity_date - export_date).days
         clean = float(row[6]) if row[6] != "N/A" else 100
         dirty = float(row[7]) if row[7] != "N/A" else clean
@@ -91,7 +125,8 @@ with open(sys.argv[1], 'r') as f:
                 taxable_return = coupon * (days_to_maturity/365)
                 total_gross_return = (100 - dirty) + taxable_return
 
-        total_net_return = total_gross_return - (taxable_return * (tax_rate / 100))
+        total_net_return = total_gross_return - \
+            (taxable_return * (tax_rate / 100))
         percentage_return = total_net_return/dirty
         annual_equiv = pow((percentage_return + 1), 365/days_to_maturity)-1
 
@@ -103,10 +138,6 @@ with open(sys.argv[1], 'r') as f:
                       GrossAER=annual_equiv))
 
 assets.sort(key=lambda x: x.GrossAER, reverse=True)
-
-print("IMPORTANT: This script is not tax advice nor financial advice.  It probably contains errors.")
-print("Do your own evaluation of how taxation works for your specific circumstances before buying any securities.")
-print("Do not rely on this script to be kept up to date as taxation laws change.")
 print()
 print(f"| {'':12} | {'':12} | {'':7} | {'':10} | {'':^7} | {'Comparison AER':^17} |")
 print(f"| {'ISIN':^12} | {'Type':^12} | {'Coupon':>7} | {'Maturity':^10} | {'Price':^7} | {'Net':^7} | {'Gross':^7} |")
