@@ -75,7 +75,7 @@ with open(sys.argv[1], 'r') as f:
     if not date_format:
         # At least one of the dates should have been unambiguous (e.g. the bill that matures on 2073-03-22).
         print("Somehow it wasn't possible to tell what the date format was.  This should never happen!  Are you sure you've done a full export?")
-        exit(1)
+        sys.exit(1)
 
     # Rewind back to the start now we know what the date format is.
     f.seek(0)
